@@ -110,6 +110,28 @@ card key samples =
             div [] []
 
 
+getRange : List Float -> ( Float, Float )
+getRange values =
+    let
+        rawMin =
+            Maybe.withDefault 10 (List.minimum values)
+
+        rawMax =
+            Maybe.withDefault 30 (List.maximum values)
+
+        span =
+            rawMax - rawMin
+    in
+        if span < 1 then
+            let
+                margin =
+                    (1 - span) / 2
+            in
+                ( rawMin - margin, rawMax + margin )
+        else
+            ( rawMin, rawMax )
+
+
 projX : Float -> Float -> Float -> Float -> String
 projX xMargin xSpan dataSpan x =
     toString (xMargin + x * (xSpan / dataSpan))
@@ -126,11 +148,8 @@ graph gWidth gHeight samples =
         ( temps, dates ) =
             List.unzip (List.reverse samples)
 
-        yMin =
-            Round.floorNum 0 (Maybe.withDefault 10 (List.minimum temps))
-
-        yMax =
-            Round.ceilingNum 0 (Maybe.withDefault 30 (List.maximum temps))
+        ( yMin, yMax ) =
+            getRange temps
 
         yStep =
             (yMax - yMin) / 10.0
@@ -165,7 +184,8 @@ graph gWidth gHeight samples =
                 |> join " "
     in
         Svg.svg
-            [ Svga.width <| toString gWidth, Svga.height <| toString gHeight ]
+            [ Svga.viewBox ("0 0 " ++ toString gWidth ++ " " ++ toString gHeight) ]
+            --[ Svga.width <| toString gWidth, Svga.height <| toString gHeight ]
             [ Svg.g [ Svga.class "axis x-axis" ]
                 [ Svg.line
                     [ Svga.x1 x0
