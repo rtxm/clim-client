@@ -1,13 +1,18 @@
 module Main exposing (..)
 
+import Color
 import Date
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Element exposing (..)
+import Element.Attributes exposing (..)
+import Html exposing (Html)
 import Http
 import Json.Decode as Decode
 import Round
 import String exposing (join)
+import Style exposing (..)
+import Style.Border as Border
+import Style.Color as Color
+import Style.Font as Font
 import Svg
 import Svg.Attributes as Svga
 import Time exposing (Time, second)
@@ -68,11 +73,61 @@ update msg model =
 -- VIEW
 
 
+type MyStyles
+    = None
+    | Card
+    | Heading
+    | SubTitle
+    | Temperature
+
+
+sansSerif : List Font
+sansSerif =
+    [ Font.font "helvetica"
+    , Font.font "arial"
+    , Font.font "sans-serif"
+    ]
+
+
+tempColor : Color.Color
+tempColor =
+    Color.rgb 0 150 136
+
+
+stylesheet : StyleSheet MyStyles variation
+stylesheet =
+    Style.styleSheet
+        [ style None [] -- It's handy to have a blank style
+        , style Card
+            [ Border.all 1 -- set all border widths to 1 px.
+            , Color.text Color.darkCharcoal
+            , Color.background Color.white
+            , Color.border Color.lightGrey
+            , Font.typeface sansSerif
+            , Font.size 16
+            , Font.lineHeight 1.3 -- line height, given as a ratio of current font size.
+            ]
+        , style Heading
+            [ Font.typeface sansSerif
+            , Font.size 32
+            ]
+        , style SubTitle
+            [ Font.size 24
+            , Color.text Color.charcoal
+            ]
+        , style Temperature
+            [ Font.size 96
+            , Color.text tempColor
+            ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
-    div []
-        [ div [] (List.map (\( key, samples ) -> card key samples) model)
-        ]
+    Element.layout stylesheet <|
+        row None
+            [ spacing 20, padding 20 ]
+            (List.map (\( key, samples ) -> card key samples) model)
 
 
 formatTime : Date.Date -> String
@@ -97,17 +152,36 @@ formatTemp t =
     Round.round 1 t
 
 
-card : String -> List Sample -> Html Msg
+locate : String -> String
+locate key =
+    case key of
+        "0" ->
+            "Bureau"
+
+        "1" ->
+            "Salon"
+
+        "2" ->
+            "Exterieur"
+
+        _ ->
+            "Inconnu"
+
+
+card : String -> List Sample -> Element MyStyles variation Msg
 card key samples =
     case List.head samples of
         Just ( temp, date ) ->
-            div []
-                [ h2 [] [ text (formatTemp temp), text "° ", text (formatTime date) ]
-                , graph 360 220 samples
+            column Card
+                [ width (px 400) ]
+                [ h2 Heading [ paddingLeft 10 ] (text <| locate key)
+                , subheading SubTitle [ paddingLeft 10 ] (formatTime date)
+                , el Temperature [ center ] (text <| (formatTemp temp) ++ "°")
+                , html (graph 360 220 samples)
                 ]
 
         Nothing ->
-            div [] []
+            empty
 
 
 getRange : List Float -> ( Float, Float )
@@ -142,7 +216,7 @@ projY yMargin ySpan yMin yMax y =
     toString (ySpan + yMargin - (y - yMin) * ySpan / (yMax - yMin))
 
 
-graph : Float -> Float -> List Sample -> Html Msg
+graph : Float -> Float -> List Sample -> Svg.Svg Msg
 graph gWidth gHeight samples =
     let
         ( temps, dates ) =
@@ -202,7 +276,7 @@ graph gWidth gHeight samples =
                         (\x d ->
                             case x % 2 of
                                 1 ->
-                                    text ""
+                                    Svg.text ""
 
                                 _ ->
                                     Svg.text_
@@ -245,7 +319,7 @@ graph gWidth gHeight samples =
                                     [ Svg.text <| formatTemp t ]
                         )
                 )
-            , Svg.polyline [ Svga.fill "none", Svga.stroke "green", Svga.points points ] []
+            , Svg.polyline [ Svga.fill "none", Svga.stroke "#009688", Svga.points points ] []
             ]
 
 
