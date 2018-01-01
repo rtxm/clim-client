@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Color
 import Date
+import Debug
 import Element exposing (..)
 import Element.Attributes exposing (..)
 import Html exposing (Html)
@@ -15,7 +16,9 @@ import Style.Color as Color
 import Style.Font as Font
 import Svg
 import Svg.Attributes as Svga
+import Task
 import Time exposing (Time, second)
+import Window
 
 
 main : Program Never Model Msg
@@ -36,15 +39,27 @@ type alias Sample =
     ( Float, Date.Date )
 
 
-type alias Model =
+type alias ProbeSamples =
     List ( String, List Sample )
+
+
+type alias Model =
+    { probeData : ProbeSamples
+    , device : Element.Device
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( []
-    , getSamples
+    ( { probeData = [], device = Element.classifyDevice { width = 0, height = 0 } }
+    , Cmd.batch [ getSamples, initialSize ]
     )
+
+
+initialSize : Cmd Msg
+initialSize =
+    Window.size
+        |> Task.perform NewWinSize
 
 
 
@@ -53,7 +68,8 @@ init =
 
 type Msg
     = Tick Time
-    | NewSamples (Result Http.Error Model)
+    | NewSamples (Result Http.Error ProbeSamples)
+    | NewWinSize Window.Size
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,10 +79,13 @@ update msg model =
             ( model, getSamples )
 
         NewSamples (Ok samples) ->
-            ( samples, Cmd.none )
+            ( { model | probeData = samples }, Cmd.none )
 
         NewSamples (Err _) ->
             ( model, Cmd.none )
+
+        NewWinSize size ->
+            ( { model | device = Element.classifyDevice (Debug.log "size" size) }, Cmd.none )
 
 
 
@@ -89,19 +108,14 @@ sansSerif =
     ]
 
 
-tempColor : Color.Color
-tempColor =
-    Color.rgb 0 150 136
-
-
 stylesheet : StyleSheet MyStyles variation
 stylesheet =
     Style.styleSheet
         [ style None [] -- It's handy to have a blank style
         , style Card
             [ Border.all 1 -- set all border widths to 1 px.
-            , Color.text Color.darkCharcoal
-            , Color.background Color.white
+            , Color.text Color.black
+            , Color.background Color.lightBlue
             , Color.border Color.lightGrey
             , Font.typeface sansSerif
             , Font.size 16
@@ -113,21 +127,29 @@ stylesheet =
             ]
         , style SubTitle
             [ Font.size 24
-            , Color.text Color.charcoal
+            , Color.text Color.darkCharcoal
             ]
         , style Temperature
             [ Font.size 96
-            , Color.text tempColor
+            , Color.text Color.white
             ]
         ]
 
 
 view : Model -> Html Msg
 view model =
-    Element.layout stylesheet <|
-        row None
-            [ spacing 20, padding 20 ]
-            (List.map (\( key, samples ) -> card key samples) model)
+    let
+        container =
+            (if model.device.width > 850 then
+                row
+             else
+                column
+            )
+    in
+        Element.layout stylesheet <|
+            container None
+                [ spacing 20, padding 20 ]
+                (List.map (\( key, samples ) -> card key samples) model.probeData)
 
 
 formatTime : Date.Date -> String
@@ -177,7 +199,7 @@ card key samples =
                 [ h2 Heading [ paddingLeft 10 ] (text <| locate key)
                 , subheading SubTitle [ paddingLeft 10 ] (formatTime date)
                 , el Temperature [ center ] (text <| (formatTemp temp) ++ "°")
-                , html (graph 360 220 samples)
+                , html (graph 360 230 samples)
                 ]
 
         Nothing ->
@@ -229,10 +251,10 @@ graph gWidth gHeight samples =
             (yMax - yMin) / 10.0
 
         xMargin =
-            30
+            0
 
         yMargin =
-            20
+            25
 
         xSpan =
             gWidth - 2 * xMargin
@@ -260,16 +282,14 @@ graph gWidth gHeight samples =
         Svg.svg
             [ Svga.viewBox ("0 0 " ++ toString gWidth ++ " " ++ toString gHeight) ]
             --[ Svga.width <| toString gWidth, Svga.height <| toString gHeight ]
-            [ Svg.g [ Svga.class "axis x-axis" ]
-                [ Svg.line
-                    [ Svga.x1 x0
-                    , Svga.y1 y0
-                    , Svga.x2 (projX_ 19.0)
-                    , Svga.y2 y0
-                    , Svga.stroke "#ccc"
-                    ]
-                    []
-                ]
+            [ let
+                llCorner =
+                    "0," ++ (toString gHeight) ++ " "
+
+                lrCorner =
+                    " " ++ (toString gWidth) ++ "," ++ (toString gHeight)
+              in
+                Svg.polygon [ Svga.fill "#86b8ef", Svga.stroke "none", Svga.points (llCorner ++ points ++ lrCorner) ] []
             , Svg.g [ Svga.class "labels x-labels" ]
                 (dates
                     |> List.indexedMap
@@ -282,8 +302,8 @@ graph gWidth gHeight samples =
                                     Svg.text_
                                         [ Svga.x (projX_ <| toFloat x)
                                         , Svga.y y0
-                                        , Svga.dy <| "13"
-                                        , Svga.dx <| toString (-xMargin / 2)
+                                        , Svga.dy <| "20"
+                                        , Svga.dx <| toString (-10)
 
                                         --, Svga.style "writing-mode: tb"
                                         , Svga.fontSize "10"
@@ -291,16 +311,6 @@ graph gWidth gHeight samples =
                                         [ Svg.text <| formatTime d ]
                         )
                 )
-            , Svg.g [ Svga.class "axis y-axis" ]
-                [ Svg.line
-                    [ Svga.x1 x0
-                    , Svga.y1 y0
-                    , Svga.x2 x0
-                    , Svga.y2 (projY_ yMax)
-                    , Svga.stroke "#ccc"
-                    ]
-                    []
-                ]
             , Svg.g [ Svga.class "labels y-labels" ]
                 ((List.range 0 10)
                     |> List.map
@@ -312,14 +322,14 @@ graph gWidth gHeight samples =
                                 Svg.text_
                                     [ Svga.x x0
                                     , Svga.y (projY_ t)
-                                    , Svga.fontSize "10"
-                                    , Svga.dx "-23"
+                                    , Svga.fontSize "12"
+                                    , Svga.dx "5"
                                     , Svga.dy "3"
+                                    , Svga.fill "white"
                                     ]
                                     [ Svg.text <| formatTemp t ]
                         )
                 )
-            , Svg.polyline [ Svga.fill "none", Svga.stroke "#009688", Svga.points points ] []
             ]
 
 
@@ -329,7 +339,10 @@ graph gWidth gHeight samples =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every (5 * second) Tick
+    Sub.batch
+        [ Time.every (5 * second) Tick
+        , Window.resizes NewWinSize
+        ]
 
 
 
@@ -355,6 +368,6 @@ sampleDecoder =
     Decode.map2 makeSample (Decode.index 0 Decode.float) (Decode.index 1 Decode.int)
 
 
-decodeSamples : Decode.Decoder Model
+decodeSamples : Decode.Decoder ProbeSamples
 decodeSamples =
     Decode.keyValuePairs (Decode.list sampleDecoder)
