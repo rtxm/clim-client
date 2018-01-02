@@ -141,15 +141,20 @@ view model =
     let
         container =
             (if model.device.width > 850 then
-                row
+                row None [ spacing 20, padding 20 ]
              else
-                column
+                column None [ spacing 20 ]
             )
+
+        cardWidth =
+            if model.device.width < 500 then
+                (percent 100)
+            else
+                (px 400)
     in
         Element.layout stylesheet <|
-            container None
-                [ spacing 20, padding 20 ]
-                (List.map (\( key, samples ) -> card key samples) model.probeData)
+            container
+                (List.map (\( key, samples ) -> card key samples cardWidth) model.probeData)
 
 
 formatTime : Date.Date -> String
@@ -190,12 +195,16 @@ locate key =
             "Inconnu"
 
 
-card : String -> List Sample -> Element MyStyles variation Msg
-card key samples =
+card :
+    String
+    -> List ( Float, Date.Date )
+    -> Length
+    -> Element MyStyles variation Msg
+card key samples cardWidth =
     case List.head samples of
         Just ( temp, date ) ->
             column Card
-                [ width (px 400) ]
+                [ width cardWidth ]
                 [ h2 Heading [ paddingLeft 10 ] (text <| locate key)
                 , subheading SubTitle [ paddingLeft 10 ] (formatTime date)
                 , el Temperature [ center ] (text <| (formatTemp temp) ++ "°")
