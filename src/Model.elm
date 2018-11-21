@@ -21,7 +21,11 @@ type alias Model =
 
 makeSample : Float -> Int -> Sample
 makeSample t s =
-    ( t, Time.millisToPosix ((60 * 1000) * toFloat s) )
+    ( t, Time.millisToPosix ((60 * 1000) * s) )
+
+
+
+-- ( t, Date.fromTime (second * toFloat s) )
 
 
 sampleDecoder : Decode.Decoder Sample
