@@ -1,16 +1,16 @@
 module View exposing (view)
 
-import Color
-import Date
-import Html exposing (Html)
-import String exposing (join)
-
-
 --
+-- Local imports
 
+import Date
 import Element exposing (..)
 import Element.Attributes exposing (..)
+import Html exposing (Html)
+import Model exposing (..)
+import Msg exposing (Msg)
 import Round
+import String exposing (join)
 import Style exposing (..)
 import Style.Border as Border
 import Style.Color as Color
@@ -18,11 +18,6 @@ import Style.Font as Font
 import Svg
 import Svg.Attributes as Svga
 
-
--- Local imports
-
-import Model exposing (..)
-import Msg exposing (Msg)
 
 
 -- VIEW
@@ -76,15 +71,15 @@ view : Model -> Html Msg
 view model =
     let
         container =
-            (if model.mobile then
+            if model.mobile then
                 column None [ spacing 20 ]
-             else
+
+            else
                 row None [ spacing 20, padding 20 ]
-            )
     in
-        Element.viewport stylesheet <|
-            container
-                (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)
+    Element.viewport stylesheet <|
+        container
+            (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)
 
 
 formatTime : Date.Date -> String
@@ -96,12 +91,12 @@ formatTime date =
         minutes =
             toString (Date.minute date)
     in
-        case String.length minutes of
-            1 ->
-                hour ++ ":0" ++ minutes
+    case String.length minutes of
+        1 ->
+            hour ++ ":0" ++ minutes
 
-            _ ->
-                hour ++ ":" ++ minutes
+        _ ->
+            hour ++ ":" ++ minutes
 
 
 formatTemp : Float -> String
@@ -125,11 +120,7 @@ locate key =
             "Inconnu"
 
 
-card :
-    String
-    -> List Sample
-    -> Bool
-    -> Element MyStyles variation Msg
+card : String -> List Sample -> Bool -> Element MyStyles variation Msg
 card key samples mobile =
     case List.head samples of
         Just ( temp, date ) ->
@@ -137,13 +128,14 @@ card key samples mobile =
                 [ width
                     (if mobile then
                         fill
+
                      else
-                        (px 400)
+                        px 400
                     )
                 ]
                 [ h2 Heading [ paddingLeft 10 ] (text <| locate key)
                 , subheading SubTitle [ paddingLeft 10 ] (formatTime date)
-                , el Temperature [ center ] (text <| (formatTemp temp) ++ "°")
+                , el Temperature [ center ] (text <| formatTemp temp ++ "°")
                 , html (graph 360 230 samples)
                 ]
 
@@ -163,14 +155,15 @@ getRange values =
         span =
             rawMax - rawMin
     in
-        if span < 1 then
-            let
-                margin =
-                    (1 - span) / 2
-            in
-                ( rawMin - margin, rawMax + margin )
-        else
-            ( rawMin, rawMax )
+    if span < 1 then
+        let
+            margin =
+                (1 - span) / 2
+        in
+        ( rawMin - margin, rawMax + margin )
+
+    else
+        ( rawMin, rawMax )
 
 
 projX : Float -> Float -> Float -> Float -> String
@@ -183,7 +176,7 @@ projY yMargin ySpan yMin yMax y =
     toString (ySpan + yMargin - (y - yMin) * ySpan / (yMax - yMin))
 
 
-graph : Float -> Float -> List Sample -> Svg.Svg Msg
+graph : Float -> Float -> List Sample -> Svg.Svg msg
 graph gWidth gHeight samples =
     let
         ( temps, dates ) =
@@ -221,58 +214,58 @@ graph gWidth gHeight samples =
 
         points =
             temps
-                |> List.indexedMap (\x y -> (projX_ <| toFloat x) ++ "," ++ (projY_ y))
+                |> List.indexedMap (\x y -> (projX_ <| toFloat x) ++ "," ++ projY_ y)
                 |> join " "
     in
-        Svg.svg
-            [ Svga.viewBox ("0 0 " ++ toString gWidth ++ " " ++ toString gHeight) ]
-            --[ Svga.width <| toString gWidth, Svga.height <| toString gHeight ]
-            [ let
-                llCorner =
-                    "0," ++ (toString gHeight) ++ " "
+    Svg.svg
+        [ Svga.viewBox ("0 0 " ++ toString gWidth ++ " " ++ toString gHeight) ]
+        --[ Svga.width <| toString gWidth, Svga.height <| toString gHeight ]
+        [ let
+            llCorner =
+                "0," ++ toString gHeight ++ " "
 
-                lrCorner =
-                    " " ++ (toString gWidth) ++ "," ++ (toString gHeight)
-              in
-                Svg.polygon [ Svga.fill "#86b8ef", Svga.stroke "none", Svga.points (llCorner ++ points ++ lrCorner) ] []
-            , Svg.g [ Svga.class "labels x-labels" ]
-                (dates
-                    |> List.indexedMap
-                        (\x d ->
-                            case x % 2 of
-                                1 ->
-                                    Svg.text ""
+            lrCorner =
+                " " ++ toString gWidth ++ "," ++ toString gHeight
+          in
+          Svg.polygon [ Svga.fill "#86b8ef", Svga.stroke "none", Svga.points (llCorner ++ points ++ lrCorner) ] []
+        , Svg.g [ Svga.class "labels x-labels" ]
+            (dates
+                |> List.indexedMap
+                    (\x d ->
+                        case modBy 2 x of
+                            1 ->
+                                Svg.text ""
 
-                                _ ->
-                                    Svg.text_
-                                        [ Svga.x (projX_ <| toFloat x)
-                                        , Svga.y y0
-                                        , Svga.dy <| "20"
-                                        , Svga.dx <| toString (-10)
-
-                                        --, Svga.style "writing-mode: tb"
-                                        , Svga.fontSize "10"
-                                        ]
-                                        [ Svg.text <| formatTime d ]
-                        )
-                )
-            , Svg.g [ Svga.class "labels y-labels" ]
-                ((List.range 0 10)
-                    |> List.map
-                        (\y ->
-                            let
-                                t =
-                                    (toFloat y) * yStep + yMin
-                            in
+                            _ ->
                                 Svg.text_
-                                    [ Svga.x x0
-                                    , Svga.y (projY_ t)
-                                    , Svga.fontSize "12"
-                                    , Svga.dx "5"
-                                    , Svga.dy "3"
-                                    , Svga.fill "white"
+                                    [ Svga.x (projX_ <| toFloat x)
+                                    , Svga.y y0
+                                    , Svga.dy <| "20"
+                                    , Svga.dx <| toString -10
+
+                                    --, Svga.style "writing-mode: tb"
+                                    , Svga.fontSize "10"
                                     ]
-                                    [ Svg.text <| formatTemp t ]
-                        )
-                )
-            ]
+                                    [ Svg.text <| formatTime d ]
+                    )
+            )
+        , Svg.g [ Svga.class "labels y-labels" ]
+            (List.range 0 10
+                |> List.map
+                    (\y ->
+                        let
+                            t =
+                                toFloat y * yStep + yMin
+                        in
+                        Svg.text_
+                            [ Svga.x x0
+                            , Svga.y (projY_ t)
+                            , Svga.fontSize "12"
+                            , Svga.dx "5"
+                            , Svga.dy "3"
+                            , Svga.fill "white"
+                            ]
+                            [ Svg.text <| formatTemp t ]
+                    )
+            )
+        ]

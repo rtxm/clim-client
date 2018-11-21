@@ -1,20 +1,15 @@
-module Main exposing (..)
-
-import Html exposing (Html)
-import Task
-import Time exposing (Time, second)
-
+module Main exposing (main)
 
 --Third parties
-
-import Http
-import Window
-
-
 -- Local imports
 
+import Browser.Dom as Dom
+import Html exposing (Html)
+import Http
 import Model exposing (..)
 import Msg exposing (..)
+import Task
+import Time exposing (Time, second)
 import View
 
 
@@ -87,4 +82,4 @@ getSamples =
         url =
             "http://alarmpi:8000"
     in
-        Http.send NewSamples (Http.get url decodeSamples)
+    Http.send NewSamples (Http.get url decodeSamples)
