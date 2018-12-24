@@ -1,21 +1,19 @@
 module Main exposing (main)
 
---Third parties
--- Local imports
-
-import Browser.Dom as Dom
-import Html exposing (Html)
+import Browser
+import Browser.Events
 import Http
+import Task
+import Time
+
 import Model exposing (..)
 import Msg exposing (..)
-import Task
-import Time exposing (Time, second)
 import View
 
 
-main : Program Never Model Msg
+main : Program Int Model Msg
 main =
-    Html.program
+    Browser.document
         { init = init
         , view = View.view
         , update = update
@@ -27,18 +25,11 @@ main =
 -- MODEL
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { probeData = [], mobile = True }
-    , Cmd.batch [ getSamples, initialSize ]
+init : Int -> ( Model, Cmd Msg )
+init width =
+    ( { probeData = [], mobile = width < 800 }
+    , getSamples
     )
-
-
-initialSize : Cmd Msg
-initialSize =
-    Window.size
-        |> Task.perform NewWinSize
-
 
 
 -- UPDATE
@@ -56,8 +47,8 @@ update msg model =
         NewSamples (Err _) ->
             ( model, Cmd.none )
 
-        NewWinSize size ->
-            ( { model | mobile = size.width < 850 }, Cmd.none )
+        NewWinSize width _ ->
+            ( { model | mobile = width < 850 }, Cmd.none )
 
 
 
@@ -67,8 +58,8 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every (5 * second) Tick
-        , Window.resizes NewWinSize
+        [ Time.every (8000) Tick
+        , Browser.Events.onResize NewWinSize
         ]
 
 

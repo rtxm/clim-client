@@ -1,6 +1,5 @@
 module Model exposing (Model, ProbeSamples, Sample, decodeSamples)
 
-import Iso8601
 import Json.Decode as Decode
 import Time exposing (Posix)
 
