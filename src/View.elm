@@ -1,19 +1,18 @@
 module View exposing (view)
 
 import Browser exposing (Document)
-import Time
-
-import Element exposing (Element, el, text, column, row, fill, width, height, rgb255, spacing, centerX, padding, html, px)
+import Element exposing (Element, centerX, column, el, fill, height, html, padding, px, rgb255, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Model exposing (..)
+import Msg exposing (Msg)
 import Round
 import String exposing (join)
 import Svg
 import Svg.Attributes as Svga
+import Time
 
-import Model exposing (..)
-import Msg exposing (Msg)
 
 
 -- VIEW
@@ -26,6 +25,7 @@ sansSerif =
     , Font.sansSerif
     ]
 
+
 styleCard =
     [ Font.color (rgb255 0 0 0)
     , Background.color (rgb255 114 159 207)
@@ -33,15 +33,18 @@ styleCard =
     , Font.size 16
     ]
 
+
 styleHeading =
     [ Font.family sansSerif
     , Font.size 32
     ]
 
+
 styleSubTitle =
     [ Font.size 24
     , Font.color (rgb255 32 32 32)
     ]
+
 
 styleTemperature =
     [ Font.size 96
@@ -61,11 +64,13 @@ view model =
                 row [ spacing 20, padding 20 ]
     in
     { title = "Temperadur er gêr"
-
-      , body = [Element.layout [] <|
+    , body =
+        [ Element.layout [] <|
             container
-                (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)]
+                (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)
+        ]
     }
+
 
 formatTime : Time.Posix -> String
 formatTime date =
@@ -117,11 +122,19 @@ card key samples mobile =
                      else
                         px 400
                     )
-                , height (if mobile then fill else px 500)
-                ] ++ styleCard)
-                [ el styleHeading  (text <| locate key)
+                 , height
+                    (if mobile then
+                        fill
+
+                     else
+                        px 500
+                    )
+                 ]
+                    ++ styleCard
+                )
+                [ el styleHeading (text <| locate key)
                 , el styleSubTitle (text <| formatTime date)
-                , el styleTemperature  (text <| formatTemp temp ++ "°")
+                , el styleTemperature (text <| formatTemp temp ++ "°")
                 , html (graph 360 230 samples)
                 ]
 

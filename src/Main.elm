@@ -3,11 +3,10 @@ module Main exposing (main)
 import Browser
 import Browser.Events
 import Http
-import Task
-import Time
-
 import Model exposing (..)
 import Msg exposing (..)
+import Task
+import Time
 import View
 
 
@@ -30,6 +29,7 @@ init width =
     ( { probeData = [], mobile = width < 800 }
     , getSamples
     )
+
 
 
 -- UPDATE
@@ -58,7 +58,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every (8000) Tick
+        [ Time.every 8000 Tick
         , Browser.Events.onResize NewWinSize
         ]
 
