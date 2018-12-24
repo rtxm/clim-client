@@ -61,7 +61,7 @@ view model =
     let
         container =
             if model.mobile then
-                column [ spacing 20 ]
+                column [ spacing 20, width fill, height fill ]
 
             else
                 row [ spacing 20, padding 20 ]
