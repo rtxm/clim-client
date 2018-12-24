@@ -1,7 +1,7 @@
 module View exposing (view)
 
 import Browser exposing (Document)
-import Element exposing (Element, centerX, column, el, fill, height, html, padding, px, rgb255, row, spacing, text, width)
+import Element exposing (Element, alignBottom, centerX, column, el, fill, height, html, padding, paddingXY, px, rgb255, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -37,12 +37,14 @@ styleCard =
 styleHeading =
     [ Font.family sansSerif
     , Font.size 32
+    , padding 10
     ]
 
 
 styleSubTitle =
     [ Font.size 24
     , Font.color (rgb255 32 32 32)
+    , paddingXY 10 5
     ]
 
 
@@ -50,6 +52,7 @@ styleTemperature =
     [ Font.size 96
     , Font.color (rgb255 255 255 255)
     , centerX
+    , padding 30
     ]
 
 
@@ -135,7 +138,7 @@ card key samples mobile =
                 [ el styleHeading (text <| locate key)
                 , el styleSubTitle (text <| formatTime date)
                 , el styleTemperature (text <| formatTemp temp ++ "°")
-                , html (graph 360 230 samples)
+                , el [ width fill, alignBottom ] (html (graph 360 230 samples))
                 ]
 
         Nothing ->

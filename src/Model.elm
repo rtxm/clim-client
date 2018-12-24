@@ -20,7 +20,7 @@ type alias Model =
 
 makeSample : Float -> Int -> Sample
 makeSample t s =
-    ( t, Time.millisToPosix ((60 * 1000) * s) )
+    ( t, Time.millisToPosix (1000 * s) )
 
 
 
