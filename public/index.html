@@ -11,9 +11,9 @@
   <body>
 
     <!-- Your Elm application  -->
-    <script src="build/Main.js"></script>
+    <script src="app.js"></script>
     <script>
-    var app = Elm.Main.fullscreen();
+    var app = Elm.Main.init({flags: window.innerWidth});
     </script>
   </body>
 </html>

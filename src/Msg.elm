@@ -1,20 +1,15 @@
-module Msg exposing (..)
-
-import Time exposing (Time)
-
+module Msg exposing (Msg(..))
 
 --
+--
 
+import Browser.Dom as Dom
 import Http
-import Window
-
-
---
-
 import Model exposing (ProbeSamples)
+import Time exposing (Posix)
 
 
 type Msg
-    = Tick Time
+    = Tick Posix
     | NewSamples (Result Http.Error ProbeSamples)
-    | NewWinSize Window.Size
+    | NewWinSize Int Int

@@ -1,26 +1,18 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Html exposing (Html)
-import Task
-import Time exposing (Time, second)
-
-
---Third parties
-
+import Browser
+import Browser.Events
 import Http
-import Window
-
-
--- Local imports
-
 import Model exposing (..)
 import Msg exposing (..)
+import Task
+import Time
 import View
 
 
-main : Program Never Model Msg
+main : Program Int Model Msg
 main =
-    Html.program
+    Browser.document
         { init = init
         , view = View.view
         , update = update
@@ -32,17 +24,11 @@ main =
 -- MODEL
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { probeData = [], mobile = True }
-    , Cmd.batch [ getSamples, initialSize ]
+init : Int -> ( Model, Cmd Msg )
+init width =
+    ( { probeData = [], mobile = width < 800 }
+    , getSamples
     )
-
-
-initialSize : Cmd Msg
-initialSize =
-    Window.size
-        |> Task.perform NewWinSize
 
 
 
@@ -61,8 +47,8 @@ update msg model =
         NewSamples (Err _) ->
             ( model, Cmd.none )
 
-        NewWinSize size ->
-            ( { model | mobile = size.width < 850 }, Cmd.none )
+        NewWinSize width _ ->
+            ( { model | mobile = width < 850 }, Cmd.none )
 
 
 
@@ -72,8 +58,8 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every (5 * second) Tick
-        , Window.resizes NewWinSize
+        [ Time.every 8000 Tick
+        , Browser.Events.onResize NewWinSize
         ]
 
 
@@ -87,4 +73,4 @@ getSamples =
         url =
             "http://alarmpi:8000"
     in
-        Http.send NewSamples (Http.get url decodeSamples)
+    Http.send NewSamples (Http.get url decodeSamples)

@@ -1,0 +1,25 @@
+{
+  "name": "clim-client",
+  "version": "1.0.0",
+  "description": "A front end for temperature probes",
+  "main": "index.js",
+  "scripts": {
+    "live": "elm-live src/Main.elm --port=3000 --dir=public/ -- --output=public/app.js",
+    "start": "npm run live",
+    "test": "elm-test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rtxm/clim-client.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rtxm/clim-client/issues"
+  },
+  "homepage": "https://github.com/rtxm/clim-client#readme",
+  "devDependencies": {
+    "elm-live": "^3.2.3",
+    "elm-test": "^0.19.0-rev3"
+  }
+}

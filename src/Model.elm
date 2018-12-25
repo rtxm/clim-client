@@ -1,12 +1,11 @@
-module Model exposing (Sample, ProbeSamples, Model, decodeSamples)
+module Model exposing (Model, ProbeSamples, Sample, decodeSamples)
 
-import Date
 import Json.Decode as Decode
-import Time exposing (second)
+import Time exposing (Posix)
 
 
 type alias Sample =
-    ( Float, Date.Date )
+    ( Float, Posix )
 
 
 type alias ProbeSamples =
@@ -21,7 +20,11 @@ type alias Model =
 
 makeSample : Float -> Int -> Sample
 makeSample t s =
-    ( t, Date.fromTime (second * toFloat s) )
+    ( t, Time.millisToPosix (1000 * s) )
+
+
+
+-- ( t, Date.fromTime (second * toFloat s) )
 
 
 sampleDecoder : Decode.Decoder Sample
