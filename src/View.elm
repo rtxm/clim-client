@@ -1,10 +1,8 @@
 module View exposing (view)
 
 import Browser exposing (Document)
-import Element exposing (Element, alignBottom, centerX, column, el, fill, height, html, padding, paddingXY, px, rgb255, row, spacing, text, width)
-import Element.Background as Background
-import Element.Border as Border
-import Element.Font as Font
+import Html exposing (..)
+import Html.Attributes exposing (class)
 import Model exposing (..)
 import Msg exposing (Msg)
 import Round
@@ -18,59 +16,20 @@ import Time
 -- VIEW
 
 
-sansSerif : List Font.Font
-sansSerif =
-    [ Font.typeface "helvetica"
-    , Font.typeface "arial"
-    , Font.sansSerif
-    ]
-
-
-styleCard =
-    [ Font.color (rgb255 0 0 0)
-    , Background.color (rgb255 114 159 207)
-    , Font.family sansSerif
-    , Font.size 16
-    ]
-
-
-styleHeading =
-    [ Font.family sansSerif
-    , Font.size 32
-    , padding 10
-    ]
-
-
-styleSubTitle =
-    [ Font.size 24
-    , Font.color (rgb255 32 32 32)
-    , paddingXY 10 5
-    ]
-
-
-styleTemperature =
-    [ Font.size 96
-    , Font.color (rgb255 255 255 255)
-    , centerX
-    , padding 30
-    ]
-
-
 view : Model -> Document Msg
 view model =
     let
         container =
             if model.mobile then
-                column [ spacing 20, width fill, height fill ]
+                class "App"
 
             else
-                row [ spacing 20, padding 20 ]
+                class "App"
     in
     { title = "Temperadur er gêr"
     , body =
-        [ Element.layout [] <|
-            container
-                (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)
+        [ div [ container ]
+            (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)
         ]
     }
 
@@ -113,36 +72,19 @@ locate key =
             "Inconnu"
 
 
-card : String -> List Sample -> Bool -> Element Msg
+card : String -> List Sample -> Bool -> Html Msg
 card key samples mobile =
     case List.head samples of
         Just ( temp, date ) ->
-            column
-                ([ width
-                    (if mobile then
-                        fill
-
-                     else
-                        px 400
-                    )
-                 , height
-                    (if mobile then
-                        fill
-
-                     else
-                        px 500
-                    )
-                 ]
-                    ++ styleCard
-                )
-                [ el styleHeading (text <| locate key)
-                , el styleSubTitle (text <| formatTime date)
-                , el styleTemperature (text <| formatTemp temp ++ "°")
-                , el [ width fill, alignBottom ] (html (graph 360 230 samples))
+            div [ class "Card" ]
+                [ h2 [] [ text <| locate key ]
+                , div [ class "subtitle" ] [ text <| formatTime date ]
+                , div [ class "temperature" ] [ text <| formatTemp temp ++ "°" ]
+                , graph 360 230 samples
                 ]
 
         Nothing ->
-            Element.none
+            div [] []
 
 
 getRange : List Float -> ( Float, Float )
@@ -220,7 +162,9 @@ graph gWidth gHeight samples =
                 |> join " "
     in
     Svg.svg
-        [ Svga.viewBox ("0 0 " ++ String.fromFloat gWidth ++ " " ++ String.fromFloat gHeight) ]
+        [ Svga.viewBox ("0 0 " ++ String.fromFloat gWidth ++ " " ++ String.fromFloat gHeight)
+        , Svga.class "Graph"
+        ]
         --[ Svga.width <| String.fromFloat gWidth, Svga.height <| String.fromFloat gHeight ]
         [ let
             llCorner =

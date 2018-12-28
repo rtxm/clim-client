@@ -26,7 +26,7 @@ main =
 
 init : Int -> ( Model, Cmd Msg )
 init width =
-    ( { probeData = [], mobile = width < 800 }
+    ( { probeData = [], mobile = width < 850 }
     , getSamples
     )
 

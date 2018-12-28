@@ -1,0 +1,96 @@
+body, html {
+    height: 100%
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif
+}
+
+#root {
+    height: 100%
+}
+
+.App {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: row;
+    flex-direction: row;
+    font-family: Helvetica, Arial, sans-serif
+}
+
+.Swiper {
+    background-color: #000
+}
+
+.Swiper, .Swiper div {
+    height: 100%
+}
+
+.Card {
+    background-color: #729fcf;
+    color: #fff;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    margin: 20px 0 0 20px;
+    padding: 0;
+    width: 400px
+}
+
+h2 {
+    color: #000;
+    font-size: 32px;
+    font-weight: 400;
+    margin: 0;
+    padding: 5px 10px
+}
+
+.subtitle {
+    color: #2e3436;
+    -ms-flex-positive: 0;
+    flex-grow: 0;
+    -ms-flex-negative: 1;
+    flex-shrink: 1;
+    font-size: 24px;
+    padding-left: 10px
+}
+
+.temperature {
+    color: #fff;
+    font-size: 96px;
+    padding: 30px;
+    text-align: center
+}
+
+.Graph, .temperature {
+    -ms-flex-positive: 1;
+    flex-grow: 1
+}
+
+.Graph {
+    -ms-flex-negative: 0;
+    flex-shrink: 0
+}
+
+@media (max-width:850px) {
+    .App {
+        -ms-flex-direction: column;
+        flex-direction: column
+    }
+
+    .App, .Card {
+        height: 100%
+    }
+
+    .Card {
+        float: left;
+        margin: 0;
+        position: relative;
+        top: 0;
+        width: 100%
+    }
+
+}
