@@ -25,6 +25,7 @@ type alias ProbeSamples =
 type alias Model =
     { probeData : ProbeSamples
     , mobile : Bool
+    , zone : Time.Zone
     }
 
 
@@ -47,6 +48,7 @@ type Msg
     = Tick Time.Posix
     | NewSamples (Result Http.Error ProbeSamples)
     | NewWinSize Int Int
+    | AdjustTimeZone Time.Zone
 
 
 main : Program Int Model Msg
@@ -60,13 +62,13 @@ main =
 
 
 
--- MODEL
+-- INIT
 
 
 init : Int -> ( Model, Cmd Msg )
 init width =
-    ( { probeData = [], mobile = width < 850 }
-    , getSamples
+    ( { probeData = [], mobile = width < 850, zone = Time.utc }
+    , Cmd.batch [ getSamples, Task.perform AdjustTimeZone Time.here ]
     )
 
 
@@ -88,6 +90,9 @@ update msg model =
 
         NewWinSize width _ ->
             ( { model | mobile = width < 850 }, Cmd.none )
+
+        AdjustTimeZone zone ->
+            ( { model | zone = zone }, Cmd.none )
 
 
 
@@ -132,19 +137,19 @@ view model =
     { title = "Temperadur er gêr"
     , body =
         [ div [ container ]
-            (List.map (\( key, samples ) -> card key samples model.mobile) model.probeData)
+            (List.map (\( key, samples ) -> card key samples model.zone) model.probeData)
         ]
     }
 
 
-formatTime : Time.Posix -> String
-formatTime date =
+formatTime : Time.Posix -> Time.Zone -> String
+formatTime date zone =
     let
         hour =
-            String.fromInt (Time.toHour Time.utc date)
+            String.fromInt (Time.toHour zone date)
 
         minutes =
-            String.fromInt (Time.toMinute Time.utc date)
+            String.fromInt (Time.toMinute zone date)
     in
     case String.length minutes of
         1 ->
@@ -152,6 +157,56 @@ formatTime date =
 
         _ ->
             hour ++ ":" ++ minutes
+
+
+formatDate : Time.Posix -> Time.Zone -> String
+formatDate date zone =
+    let
+        day =
+            Time.toDay zone date |> String.fromInt
+
+        year =
+            Time.toYear zone date |> String.fromInt
+
+        month =
+            case Time.toMonth zone date of
+                Time.Jan ->
+                    "01"
+
+                Time.Feb ->
+                    "02"
+
+                Time.Mar ->
+                    "03"
+
+                Time.Apr ->
+                    "04"
+
+                Time.May ->
+                    "05"
+
+                Time.Jun ->
+                    "06"
+
+                Time.Jul ->
+                    "07"
+
+                Time.Aug ->
+                    "08"
+
+                Time.Sep ->
+                    "09"
+
+                Time.Oct ->
+                    "10"
+
+                Time.Nov ->
+                    "11"
+
+                Time.Dec ->
+                    "12"
+    in
+    day ++ "/" ++ month ++ "/" ++ year
 
 
 formatTemp : Float -> String
@@ -163,27 +218,31 @@ locate : String -> String
 locate key =
     case key of
         "0" ->
-            "Bureau"
-
-        "1" ->
             "Salon"
 
+        "1" ->
+            "Bureau"
+
         "2" ->
-            "Exterieur"
+            "Mobile"
 
         _ ->
             "Inconnu"
 
 
-card : String -> List Sample -> Bool -> Html Msg
-card key samples mobile =
+card : String -> List Sample -> Time.Zone -> Html Msg
+card key samples zone =
     case List.head samples of
         Just ( temp, date ) ->
             div [ class "Card" ]
                 [ h2 [] [ text <| locate key ]
-                , div [ class "subtitle" ] [ text <| formatTime date ]
+                , div [ class "subtitle" ]
+                    [ text <| formatDate date zone
+                    , text " "
+                    , text <| formatTime date zone
+                    ]
                 , div [ class "temperature" ] [ text <| formatTemp temp ++ "°" ]
-                , graph 360 230 samples
+                , graph 360 230 samples zone
                 ]
 
         Nothing ->
@@ -223,8 +282,8 @@ projY yMargin ySpan yMin yMax y =
     String.fromFloat (ySpan + yMargin - (y - yMin) * ySpan / (yMax - yMin))
 
 
-graph : Float -> Float -> List Sample -> Svg.Svg msg
-graph gWidth gHeight samples =
+graph : Float -> Float -> List Sample -> Time.Zone -> Svg.Svg msg
+graph gWidth gHeight samples zone =
     let
         ( temps, dates ) =
             List.unzip (List.reverse samples)
@@ -295,7 +354,7 @@ graph gWidth gHeight samples =
                                     --, Svga.style "writing-mode: tb"
                                     , Svga.fontSize "10"
                                     ]
-                                    [ Svg.text <| formatTime d ]
+                                    [ Svg.text <| formatTime d zone ]
                     )
             )
         , Svg.g [ Svga.class "labels y-labels" ]
