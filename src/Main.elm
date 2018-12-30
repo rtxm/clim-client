@@ -133,7 +133,7 @@ view : Model -> Document Msg
 view model =
     let
         content =
-            if model.width < 860 then
+            if model.width < 850 then
                 div
                     [ class "Swiper" ]
                     [ div
