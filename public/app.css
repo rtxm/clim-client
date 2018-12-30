@@ -13,19 +13,22 @@ body {
 }
 
 .App {
-    display: -ms-flexbox;
-    display: flex;
-    -ms-flex-direction: row;
-    flex-direction: row;
     font-family: Helvetica, Arial, sans-serif
 }
 
-.Swiper {
-    background-color: #000
+.Swiper, .Swiper div {
+    height: 100%;
 }
 
-.Swiper, .Swiper div {
-    height: 100%
+.Swiper {
+    background-color: #000;
+    overflow: hidden;
+    position: relative;
+}
+
+.Slider {
+    overflow: hidden;
+    position: relative;
 }
 
 .Card {
@@ -37,7 +40,9 @@ body {
     flex-direction: column;
     margin: 20px 0 0 20px;
     padding: 0;
-    width: 400px
+    float: left;
+    position: relative;
+    top: 0;
 }
 
 h2 {
@@ -76,21 +81,10 @@ h2 {
 }
 
 @media (max-width:850px) {
-    .App {
-        -ms-flex-direction: column;
-        flex-direction: column
-    }
-
-    .App, .Card {
-        height: 100%
-    }
 
     .Card {
-        float: left;
         margin: 0;
-        position: relative;
-        top: 0;
-        width: 100%
+        height: 100%;
     }
 
 }

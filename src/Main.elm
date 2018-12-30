@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Browser.Events
 import Html exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 import Http
 import Json.Decode as Decode
 import Round
@@ -24,9 +24,14 @@ type alias ProbeSamples =
 
 type alias Model =
     { probeData : ProbeSamples
-    , mobile : Bool
+    , width : Int
     , zone : Time.Zone
     }
+
+
+numberOfCards : Model -> Int
+numberOfCards model =
+    List.length model.probeData
 
 
 makeSample : Float -> Int -> Sample
@@ -67,7 +72,7 @@ main =
 
 init : Int -> ( Model, Cmd Msg )
 init width =
-    ( { probeData = [], mobile = width < 850, zone = Time.utc }
+    ( { probeData = [], width = width, zone = Time.utc }
     , Cmd.batch [ getSamples, Task.perform AdjustTimeZone Time.here ]
     )
 
@@ -89,7 +94,7 @@ update msg model =
             ( model, Cmd.none )
 
         NewWinSize width _ ->
-            ( { model | mobile = width < 850 }, Cmd.none )
+            ( { model | width = width }, Cmd.none )
 
         AdjustTimeZone zone ->
             ( { model | zone = zone }, Cmd.none )
@@ -127,19 +132,35 @@ getSamples =
 view : Model -> Document Msg
 view model =
     let
-        container =
-            if model.mobile then
-                class "App"
+        content =
+            if model.width < 860 then
+                div
+                    [ class "Swiper" ]
+                    [ div
+                        [ class "Slider"
+                        , style "width" (String.fromInt (numberOfCards model * model.width) ++ "px")
+                        ]
+                        (cards model model.width)
+                    ]
 
             else
-                class "App"
+                div [ class "App" ] (cards model 400)
     in
-    { title = "Temperadur er gêr"
+    { title = "Temperadur er gêr " ++ String.fromInt model.width
     , body =
-        [ div [ container ]
-            (List.map (\( key, samples ) -> card key samples model.zone) model.probeData)
-        ]
+        [ content ]
     }
+
+
+cards : Model -> Int -> List (Html Msg)
+cards model cardWidth =
+    let
+        cardStyle =
+            [ class "Card"
+            , style "width" (String.fromInt cardWidth ++ "px")
+            ]
+    in
+    List.map (\( key, samples ) -> card key samples model.zone cardStyle) model.probeData
 
 
 formatTime : Time.Posix -> Time.Zone -> String
@@ -230,11 +251,11 @@ locate key =
             "Inconnu"
 
 
-card : String -> List Sample -> Time.Zone -> Html Msg
-card key samples zone =
+card : String -> List Sample -> Time.Zone -> List (Attribute Msg) -> Html Msg
+card key samples zone cardStyle =
     case List.head samples of
         Just ( temp, date ) ->
-            div [ class "Card" ]
+            div cardStyle
                 [ h2 [] [ text <| locate key ]
                 , div [ class "subtitle" ]
                     [ text <| formatDate date zone
