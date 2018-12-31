@@ -4,6 +4,7 @@ import Browser exposing (Document)
 import Browser.Events
 import Html exposing (..)
 import Html.Attributes exposing (class, style)
+import Html.Events exposing (on, preventDefaultOn)
 import Http
 import Json.Decode as Decode
 import Round
@@ -14,6 +15,20 @@ import Task
 import Time
 
 
+main : Program Int Model Msg
+main =
+    Browser.document
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
+
+
+-- MODEL
+
+
 type alias Sample =
     ( Float, Time.Posix )
 
@@ -22,10 +37,16 @@ type alias ProbeSamples =
     List ( String, List Sample )
 
 
+type Drag
+    = Drag Int Int
+
+
 type alias Model =
     { probeData : ProbeSamples
     , width : Int
     , zone : Time.Zone
+    , currentCard : Int
+    , drag : Maybe Drag
     }
 
 
@@ -49,36 +70,29 @@ decodeSamples =
     Decode.keyValuePairs (Decode.list sampleDecoder)
 
 
-type Msg
-    = Tick Time.Posix
-    | NewSamples (Result Http.Error ProbeSamples)
-    | NewWinSize Int Int
-    | AdjustTimeZone Time.Zone
-
-
-main : Program Int Model Msg
-main =
-    Browser.document
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
-
-
 
 -- INIT
 
 
 init : Int -> ( Model, Cmd Msg )
 init width =
-    ( { probeData = [], width = width, zone = Time.utc }
+    ( { probeData = [], width = width, zone = Time.utc, currentCard = 0, drag = Nothing }
     , Cmd.batch [ getSamples, Task.perform AdjustTimeZone Time.here ]
     )
 
 
 
 -- UPDATE
+
+
+type Msg
+    = Tick Time.Posix
+    | NewSamples (Result Http.Error ProbeSamples)
+    | NewWinSize Int Int
+    | AdjustTimeZone Time.Zone
+    | DragStart Int
+    | DragAt Int
+    | DragEnd
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -98,6 +112,54 @@ update msg model =
 
         AdjustTimeZone zone ->
             ( { model | zone = zone }, Cmd.none )
+
+        DragStart pos ->
+            ( { model | drag = Just (Drag pos pos) }, Cmd.none )
+
+        DragAt pos ->
+            let
+                updateDrag current_ (Drag start _) =
+                    Drag start current_
+
+                newDrag =
+                    Maybe.map (updateDrag pos) model.drag
+            in
+            ( { model | drag = newDrag }, Cmd.none )
+
+        DragEnd ->
+            let
+                threshold =
+                    model.width // 4
+
+                maxCard =
+                    numberOfCards model - 1
+
+                toCard idx =
+                    if idx < 0 then
+                        0
+
+                    else if idx > maxCard then
+                        maxCard
+
+                    else
+                        idx
+
+                newCard =
+                    case model.drag of
+                        Just (Drag start end) ->
+                            if start - end > threshold then
+                                toCard (model.currentCard + 1)
+
+                            else if end - start > threshold then
+                                toCard (model.currentCard - 1)
+
+                            else
+                                model.currentCard
+
+                        Nothing ->
+                            model.currentCard
+            in
+            ( { model | drag = Nothing, currentCard = newCard }, Cmd.none )
 
 
 
@@ -129,6 +191,27 @@ getSamples =
 -- VIEW
 
 
+sliderStyle : Model -> List (Attribute Msg)
+sliderStyle model =
+    let
+        stableSliderPos =
+            -model.currentCard * model.width
+
+        sliderPos =
+            case model.drag of
+                Just (Drag start end) ->
+                    stableSliderPos + end - start
+
+                Nothing ->
+                    stableSliderPos
+    in
+    [ class "Slider"
+    , style "width" (String.fromInt (numberOfCards model * model.width) ++ "px")
+    , style "left" (String.fromInt sliderPos ++ "px")
+    ]
+        ++ events model.drag
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -137,16 +220,14 @@ view model =
                 div
                     [ class "Swiper" ]
                     [ div
-                        [ class "Slider"
-                        , style "width" (String.fromInt (numberOfCards model * model.width) ++ "px")
-                        ]
+                        (sliderStyle model)
                         (cards model model.width)
                     ]
 
             else
                 div [ class "App" ] (cards model 400)
     in
-    { title = "Temperadur er gêr " ++ String.fromInt model.width
+    { title = "Temperadur er gêr "
     , body =
         [ content ]
     }
@@ -245,7 +326,7 @@ locate key =
             "Bureau"
 
         "2" ->
-            "Mobile"
+            "Chambre"
 
         _ ->
             "Inconnu"
@@ -398,3 +479,42 @@ graph gWidth gHeight samples zone =
                     )
             )
         ]
+
+
+
+-- EVENTS
+
+
+events : Maybe Drag -> List (Attribute Msg)
+events drag =
+    moveEvent drag
+        ++ [ on "mousedown" (Decode.map DragStart decodePosition)
+           , on "touchstart" (Decode.map DragStart decodePosition)
+           ]
+
+
+moveEvent : Maybe Drag -> List (Attribute Msg)
+moveEvent drag =
+    case drag of
+        Just _ ->
+            [ preventDefaultOn "mousemove"
+                (Decode.map (\p -> ( DragAt p, True )) decodePosition)
+            , preventDefaultOn "touchmove"
+                (Decode.map (\p -> ( DragAt p, True )) decodePosition)
+            , on "mouseup" (Decode.succeed DragEnd)
+            , on "mouseleave" (Decode.succeed DragEnd)
+            , on "touchend" (Decode.succeed DragEnd)
+            , on "touchcancel" (Decode.succeed DragEnd)
+            ]
+
+        Nothing ->
+            []
+
+
+decodePosition : Decode.Decoder Int
+decodePosition =
+    let
+        decoder =
+            Decode.field "pageX" (Decode.map floor Decode.float)
+    in
+    Decode.oneOf [ decoder, Decode.at [ "touches", "0" ] decoder ]
