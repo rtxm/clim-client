@@ -204,11 +204,20 @@ sliderStyle model =
 
                 Nothing ->
                     stableSliderPos
+
+        transition =
+            case model.drag of
+                Just (Drag start end) ->
+                    []
+
+                Nothing ->
+                    [ style "transition" "0.2s" ]
     in
     [ class "Slider"
     , style "width" (String.fromInt (numberOfCards model * model.width) ++ "px")
     , style "left" (String.fromInt sliderPos ++ "px")
     ]
+        ++ transition
         ++ events model.drag
 
 
@@ -489,7 +498,7 @@ events : Maybe Drag -> List (Attribute Msg)
 events drag =
     moveEvent drag
         ++ [ on "mousedown" (Decode.map DragStart decodePosition)
-           , on "touchstart" (Decode.map DragStart decodePosition)
+           , preventDefaultOn "touchstart" (Decode.map (\p -> ( DragStart p, True )) decodePosition)
            ]
 
 
