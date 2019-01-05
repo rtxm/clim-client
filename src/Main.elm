@@ -5,6 +5,7 @@ import Browser.Events
 import Html exposing (..)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (on, preventDefaultOn)
+import Html.Lazy as Lazy
 import Http
 import Json.Decode as Decode
 import Round
@@ -169,7 +170,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 8000 Tick
+        [ Time.every 20000 Tick
         , Browser.Events.onResize NewWinSize
         ]
 
@@ -215,7 +216,8 @@ sliderStyle model =
     in
     [ class "Slider"
     , style "width" (String.fromInt (numberOfCards model * model.width) ++ "px")
-    , style "left" (String.fromInt sliderPos ++ "px")
+    , style "left" "0px"
+    , style "transform" ("translate(" ++ String.fromInt sliderPos ++ "px, 0px)")
     ]
         ++ transition
         ++ events model.drag
@@ -250,7 +252,7 @@ cards model cardWidth =
             , style "width" (String.fromInt cardWidth ++ "px")
             ]
     in
-    List.map (\( key, samples ) -> card key samples model.zone cardStyle) model.probeData
+    List.map (\( key, samples ) -> Lazy.lazy4 card key samples model.zone cardStyle) model.probeData
 
 
 formatTime : Time.Posix -> Time.Zone -> String
